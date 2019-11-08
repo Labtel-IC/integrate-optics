@@ -1,121 +1,36 @@
-%c
-%c                                                       ..'Ž`'..'Ž`..'Ž`..                                                   
-%c       File: main
-%c(Main File to Run The tests with MZM)
-%c
-%c     This main code is resposible to call and run the all the fuction to
-%c related to this simulation. Here it is possible to change any 
-%c configuration that was previouly stated on the Input data file of this 
-%c simulation.
-%c The equation here described represents the MZM transfer function at the 
-%c time domain. Here an incoming electrical field Ein will be modulated by 
-%c the changes of the refractive index on each branch of the MZM due to the 
-%c voltage variation. V_pi represents a DC source. It is the polarisation
-%c point of the MZM. The second electrical source is the RF modulating
-%c signal represented by sin(2*pi *f*t). There are two RF sources, although
-%c here their only difference is the phase that will be later introduced.
-%c This simulation will work with the MZM varying some parameters to
-%c observe the generation of optical comb formations.
-%c
-%c      Eout = Ein*cos( (phi_1-phi_2)/2 )*e^[j*( (phi_1+phi_2)/2 )]
-%c                              
-%c
-%c          phi_1 = (pi/V_pi)*V*sin(2*pi*f*t)
-%c
-%c          phi_1 = (pi/V_pi)*V*sin(2*pi*f*t)
-%c
-%c                                           by P.Marciano LT
-%c                                           04/11/2019
-%c                                           pablorafael.mcx@gmail.com
-%c 
-%c     References:
-%c
-%c@article{combii,
-%c  title={Demonstration of 16QAM-OFDM UDWDM Transmission Using a Tunable Optical Flat Comb Source},
-%c  author={Hraghi, Abir and Chaibi, Mohamed Essghair and Menif, Mourad and Erasme, Didier},
-%c  journal={Journal of Lightwave Technology},
-%c  volume={35},
-%c  number={2},
-%c  pages={238--245},
-%c  year={2017},
-%c  publisher={IEEE}
-%c}
-%c
-%c@article{kim2002chirp,
-%c  title={Chirp characteristics of dual-drive. Mach-Zehnder modulator with a finite DC extinction ratio},
-%c  author={Kim, Hoon and Gnauck, Alan H},
-%c  journal={IEEE Photonics Technology Letters},
-%c  volume={14},
-%c  number={3},
-%c  pages={298--300},
-%c  year={2002},
-%c  publisher={IEEE}
-%c}
-%c
-%c@phdthesis{togneri2005analise,
-%c  title={An{\'a}lise de Sistemas de Multiplexa{\c{c}}{\~a}o por Subportadora-SCM},
-%c  author={Togneri, Arnaldo Paterline},
-%c  year={2005},
-%c  school={UNIVERSIDADE FEDERAL DO ESP{\'I}RITO SANTO}
-%c}
-%c
-%c@article{oliveiralarge,
-%c  title={Large Signal Analysis of Mach-Zehnder Modulator Intensity Response in a Linear Dispersive Fiber},
-%c  author={Oliveira, JMB and Salgado, HM and Rodrigues, MRD}
-%c}
-%c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%c                    G L O B A L  V A R I A B L E S                      %
-%c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%c   
-%c
-%c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%c                   L I S T  O F  V A R I A B L E S                      %
-%c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%c   
-%c
-%c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%c                             S T R U C T S                              %
-%c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%c   Here it will be added the functions that this code will call
-%c   
-%c
-%c
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                          Start of the Program                           %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-clear ; clc; close all;
+clear all;
+clc;
 
-%% First Instance: Responsible to generate the basic signal and constants
-% This is the first point of the program whre the file that loads the main
-% configuration is loaded. This file is used to make the major definitions 
-% needed for the simulation. Therefore, whatever modification needed will
-% be done inside of it. No other part of this code must be changed. If you 
-% do, please save this file with a different name.
+Local = [pwd '\input_files\'];
+MZ_Input_File  ='MZ_Input_Data';
+MZ_Input_Data;
 
-tic; % Here it is important since this simulation will generate different 
-     % MZM-InputFiles. The function "Set_MZ_Input_Data_Simp" requiers that
-     % the tic to be inicializated. If not a error message will apear
+nNyx = 2^6;
+vLuz = 3e8;
+compOnda = 1550e-9;
+fc = vLuz/compOnda;
+tf=1/fc;
+fa = nNyx*fc;
+ta = 1/fa;
+t = 0:ta:tf;
+f = time2freq(t);
+Ein = ones(1,length(t));
 
-main_inputdata; % This code is were the variables for this simulation will
-                % be creatted and stored. The vast majority of variables
-                % that the user can control should be within this file.
+Vbias = -8:0.5:8;
+Vbias_steps = length(Vbias);
+Vpi = 3.9;
 
-Make_MZ_Input_Files_Simp; % Call the script to creat different MZ-inputdata
+tic;
 
-ThisPower = zeros(1,Vbias_steps);
-ThisPowerdBm = zeros(1,Vbias_steps);
+Make_MZ_Input_Files_Simp;
 
-for kk=1:Vbias_steps
-    [Eout,H] = Mach_Zehnder_Modulator_simplificado(t,Cw,ElecSing,kk);
-    [ThisPower(kk),ThisPowerdBm(kk)] = MeasPower(Eout,t); 
+PotenciamW = zeros(1,Vbias_steps);
+PotenciadB = zeros(1,Vbias_steps);
+
+for arq = 1:Vbias_steps
+    [Eout,H] = MZM(t,Ein,0,arq);
+    [PotenciamW(arq),PotenciadB(arq)] = MeasPower(Eout,t);
 end
 
-figure;
-
-plot(Vbias,ThisPower);
-
-a=a+1;
-
-
-
-
+norm = PotenciamW./max(PotenciamW);
+plot(Vbias,norm);
